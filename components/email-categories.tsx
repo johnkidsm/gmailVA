@@ -6,18 +6,10 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Settings } from "lucide-react"
 import EmailList from "./email-list"
+import type { EmailData } from "@/services/gmail-service"
 
 // Define the category types
 export type EmailCategory = "primary" | "social" | "promotions" | "updates" | "forums"
-
-// Sample category counts
-const categoryCounts = {
-  primary: 12,
-  social: 5,
-  promotions: 18,
-  updates: 7,
-  forums: 2,
-}
 
 // Sample category descriptions
 const categoryDescriptions = {
@@ -38,11 +30,20 @@ const categoryColors = {
 }
 
 interface EmailCategoriesProps {
+  emails: EmailData[]
+  onEmailsChange: (emails: EmailData[]) => void
+  accessToken?: string
   defaultCategory?: EmailCategory
   onCategoryChange?: (category: EmailCategory) => void
 }
 
-export default function EmailCategories({ defaultCategory = "primary", onCategoryChange }: EmailCategoriesProps) {
+export default function EmailCategories({
+  emails,
+  onEmailsChange,
+  accessToken,
+  defaultCategory = "primary",
+  onCategoryChange,
+}: EmailCategoriesProps) {
   const [activeCategory, setActiveCategory] = useState<EmailCategory>(defaultCategory)
 
   const handleCategoryChange = (category: EmailCategory) => {
@@ -50,6 +51,15 @@ export default function EmailCategories({ defaultCategory = "primary", onCategor
     if (onCategoryChange) {
       onCategoryChange(category)
     }
+  }
+
+  // Count emails in each category
+  const categoryCounts = {
+    primary: emails.filter((e) => e.category === "primary" && !e.read).length,
+    social: emails.filter((e) => e.category === "social" && !e.read).length,
+    promotions: emails.filter((e) => e.category === "promotions" && !e.read).length,
+    updates: emails.filter((e) => e.category === "updates" && !e.read).length,
+    forums: emails.filter((e) => e.category === "forums" && !e.read).length,
   }
 
   return (
@@ -138,19 +148,19 @@ export default function EmailCategories({ defaultCategory = "primary", onCategor
         </div>
 
         <TabsContent value="primary" className="m-0">
-          <EmailList category="primary" />
+          <EmailList emails={emails} onEmailsChange={onEmailsChange} accessToken={accessToken} category="primary" />
         </TabsContent>
         <TabsContent value="social" className="m-0">
-          <EmailList category="social" />
+          <EmailList emails={emails} onEmailsChange={onEmailsChange} accessToken={accessToken} category="social" />
         </TabsContent>
         <TabsContent value="promotions" className="m-0">
-          <EmailList category="promotions" />
+          <EmailList emails={emails} onEmailsChange={onEmailsChange} accessToken={accessToken} category="promotions" />
         </TabsContent>
         <TabsContent value="updates" className="m-0">
-          <EmailList category="updates" />
+          <EmailList emails={emails} onEmailsChange={onEmailsChange} accessToken={accessToken} category="updates" />
         </TabsContent>
         <TabsContent value="forums" className="m-0">
-          <EmailList category="forums" />
+          <EmailList emails={emails} onEmailsChange={onEmailsChange} accessToken={accessToken} category="forums" />
         </TabsContent>
       </Tabs>
     </div>

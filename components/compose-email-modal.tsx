@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/components/ui/use-toast"
 import {
   Bold,
   Italic,
@@ -24,22 +25,35 @@ import {
   Minimize2,
   Maximize2,
   X,
+  Loader2,
 } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { sendEmail } from "@/services/gmail-service"
 
 interface ComposeEmailModalProps {
   isOpen: boolean
   onClose: () => void
+  accessToken?: string
+  onEmailSent?: () => void
 }
 
-export default function ComposeEmailModal({ isOpen, onClose }: ComposeEmailModalProps) {
+export default function ComposeEmailModal({ isOpen, onClose, accessToken, onEmailSent }: ComposeEmailModalProps) {
+  const { toast } = useToast()
   const [isMinimized, setIsMinimized] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showCc, setShowCc] = useState(false)
   const [showBcc, setShowBcc] = useState(false)
   const [attachments, setAttachments] = useState<File[]>([])
+  const [isSending, setIsSending] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Form state
+  const [to, setTo] = useState("")
+  const [cc, setCc] = useState("")
+  const [bcc, setBcc] = useState("")
+  const [subject, setSubject] = useState("")
+  const [body, setBody] = useState("")
 
   const handleAttachmentClick = () => {
     fileInputRef.current?.click()
@@ -66,14 +80,73 @@ export default function ComposeEmailModal({ isOpen, onClose }: ComposeEmailModal
     if (isMinimized) setIsMinimized(false)
   }
 
-  const handleSend = () => {
-    // Here you would handle sending the email
-    console.log("Sending email...")
-    onClose()
+  const resetForm = () => {
+    setTo("")
+    setCc("")
+    setBcc("")
+    setSubject("")
+    setBody("")
+    setAttachments([])
+    setShowCc(false)
+    setShowBcc(false)
+  }
+
+  const handleSend = async () => {
+    if (!accessToken || !to.trim() || !subject.trim() || !body.trim()) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in all required fields (To, Subject, and Message).",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsSending(true)
+    try {
+      const success = await sendEmail(accessToken, to, subject, body)
+
+      if (success) {
+        toast({
+          title: "Email sent",
+          description: "Your email has been sent successfully.",
+        })
+        resetForm()
+        onClose()
+        if (onEmailSent) {
+          onEmailSent()
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to send email. Please try again.",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Failed to send email:", error)
+      toast({
+        title: "Error",
+        description: "Failed to send email. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSending(false)
+    }
+  }
+
+  const handleClose = () => {
+    if (to || cc || bcc || subject || body || attachments.length > 0) {
+      if (confirm("Discard this draft?")) {
+        resetForm()
+        onClose()
+      }
+    } else {
+      onClose()
+    }
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent
         className={`p-0 gap-0 ${
           isFullscreen
@@ -100,7 +173,7 @@ export default function ComposeEmailModal({ isOpen, onClose }: ComposeEmailModal
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6 text-primary-foreground hover:bg-primary/90"
-                onClick={onClose}
+                onClick={handleClose}
               >
                 <X className="h-4 w-4" />
                 <span className="sr-only">Close</span>
@@ -129,7 +202,7 @@ export default function ComposeEmailModal({ isOpen, onClose }: ComposeEmailModal
                     </>
                   )}
                 </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleClose}>
                   <X className="h-4 w-4" />
                   <span className="sr-only">Close</span>
                 </Button>
@@ -144,7 +217,13 @@ export default function ComposeEmailModal({ isOpen, onClose }: ComposeEmailModal
                     <Label htmlFor="to" className="w-12">
                       To
                     </Label>
-                    <Input id="to" placeholder="Recipients" className="flex-1" />
+                    <Input
+                      id="to"
+                      placeholder="Recipients"
+                      className="flex-1"
+                      value={to}
+                      onChange={(e) => setTo(e.target.value)}
+                    />
                     <div className="ml-2 flex gap-1">
                       <Button
                         variant="ghost"
@@ -170,7 +249,13 @@ export default function ComposeEmailModal({ isOpen, onClose }: ComposeEmailModal
                       <Label htmlFor="cc" className="w-12">
                         Cc
                       </Label>
-                      <Input id="cc" placeholder="Carbon copy recipients" className="flex-1" />
+                      <Input
+                        id="cc"
+                        placeholder="Carbon copy recipients"
+                        className="flex-1"
+                        value={cc}
+                        onChange={(e) => setCc(e.target.value)}
+                      />
                     </div>
                   )}
 
@@ -179,7 +264,13 @@ export default function ComposeEmailModal({ isOpen, onClose }: ComposeEmailModal
                       <Label htmlFor="bcc" className="w-12">
                         Bcc
                       </Label>
-                      <Input id="bcc" placeholder="Blind carbon copy recipients" className="flex-1" />
+                      <Input
+                        id="bcc"
+                        placeholder="Blind carbon copy recipients"
+                        className="flex-1"
+                        value={bcc}
+                        onChange={(e) => setBcc(e.target.value)}
+                      />
                     </div>
                   )}
                 </div>
@@ -189,7 +280,13 @@ export default function ComposeEmailModal({ isOpen, onClose }: ComposeEmailModal
                   <Label htmlFor="subject" className="w-12">
                     Subject
                   </Label>
-                  <Input id="subject" placeholder="Subject" className="flex-1" />
+                  <Input
+                    id="subject"
+                    placeholder="Subject"
+                    className="flex-1"
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                  />
                 </div>
 
                 {/* Formatting Toolbar */}
@@ -309,7 +406,12 @@ export default function ComposeEmailModal({ isOpen, onClose }: ComposeEmailModal
                 </div>
 
                 {/* Email Body */}
-                <Textarea placeholder="Compose your email..." className="min-h-[200px] resize-none" />
+                <Textarea
+                  placeholder="Compose your email..."
+                  className="min-h-[200px] resize-none"
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                />
 
                 {/* Attachments */}
                 {attachments.length > 0 && (
@@ -343,14 +445,23 @@ export default function ComposeEmailModal({ isOpen, onClose }: ComposeEmailModal
             <DialogFooter className="p-4 border-t">
               <div className="flex items-center justify-between w-full">
                 <div className="flex items-center gap-2">
-                  <Button onClick={handleSend}>Send</Button>
+                  <Button onClick={handleSend} disabled={isSending || !to.trim() || !subject.trim() || !body.trim()}>
+                    {isSending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      "Send"
+                    )}
+                  </Button>
                   <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileChange} multiple />
                   <Button variant="outline" size="icon" onClick={handleAttachmentClick}>
                     <Paperclip className="h-4 w-4" />
                     <span className="sr-only">Attach files</span>
                   </Button>
                 </div>
-                <Button variant="ghost" size="sm" onClick={onClose}>
+                <Button variant="ghost" size="sm" onClick={handleClose}>
                   Discard
                 </Button>
               </div>

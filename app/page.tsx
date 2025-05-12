@@ -1,3 +1,5 @@
+"use client"
+
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import {
@@ -24,7 +26,14 @@ import EmailList from "@/components/email-list"
 import AssistantFeatures from "@/components/assistant-features"
 import { ThemeToggle } from "@/components/theme-toggle"
 
+// Import the ComposeEmailModal component at the top of the file
+import { useState } from "react"
+import ComposeEmailModal from "@/components/compose-email-modal"
+
+// Update the Home component to include state for the compose modal
 export default function Home() {
+  const [composeModalOpen, setComposeModalOpen] = useState(false)
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Header */}
@@ -61,7 +70,9 @@ export default function Home() {
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
         <aside className="hidden md:flex flex-col w-64 p-4 border-r shrink-0">
-          <Button className="flex items-center justify-start gap-2 mb-6">
+          {/* Update the Compose button in the sidebar to open the modal */}
+          {/* Find the Button with "Compose" text and replace it with: */}
+          <Button className="flex items-center justify-start gap-2 mb-6" onClick={() => setComposeModalOpen(true)}>
             <Plus className="w-4 h-4" />
             <span>Compose</span>
           </Button>
@@ -163,6 +174,9 @@ export default function Home() {
           </Tabs>
         </main>
       </div>
+      {/* Add the ComposeEmailModal component at the end of the component, just before the closing </div> */}
+      {/* Add this right before the final closing </div> tag: */}
+      <ComposeEmailModal isOpen={composeModalOpen} onClose={() => setComposeModalOpen(false)} />
     </div>
   )
 }

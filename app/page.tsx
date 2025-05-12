@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import Link from "next/link"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -18,6 +20,7 @@ import {
   Star,
   Trash2,
   User,
+  Filter,
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -30,11 +33,43 @@ import ComposeEmailModal from "@/components/compose-email-modal"
 import EmailCategories from "@/components/email-categories"
 import CategorySettings from "@/components/category-settings"
 import CategoryAnalytics from "@/components/category-analytics"
+import AdvancedSearch from "@/components/advanced-search"
+import SearchResults from "@/components/search-results"
+import type { FilterCriteria } from "@/components/advanced-search"
 
 export default function Home() {
   const [composeModalOpen, setComposeModalOpen] = useState(false)
   const [categorySettingsOpen, setCategorySettingsOpen] = useState(false)
+  const [advancedSearchOpen, setAdvancedSearchOpen] = useState(false)
   const [activeTab, setActiveTab] = useState("inbox")
+  const [searchQuery, setSearchQuery] = useState("")
+  const [searchFilters, setSearchFilters] = useState<FilterCriteria[]>([])
+  const [isSearching, setIsSearching] = useState(false)
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      setSearchFilters([
+        { id: "1", field: "subject", operator: "contains", value: searchQuery },
+        { id: "2", field: "body", operator: "contains", value: searchQuery },
+      ])
+      setIsSearching(true)
+      setActiveTab("search")
+    }
+  }
+
+  const handleAdvancedSearch = (filters: FilterCriteria[]) => {
+    setSearchFilters(filters)
+    setIsSearching(true)
+    setActiveTab("search")
+  }
+
+  const clearSearch = () => {
+    setSearchQuery("")
+    setSearchFilters([])
+    setIsSearching(false)
+    setActiveTab("inbox")
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -51,10 +86,31 @@ export default function Home() {
           </div>
         </div>
         <div className="hidden md:flex items-center flex-1 max-w-xl mx-4">
-          <div className="relative w-full">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input type="search" placeholder="Search emails..." className="w-full pl-8 bg-muted" />
-          </div>
+          <form onSubmit={handleSearch} className="relative w-full flex">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search emails..."
+                className="w-full pl-8 pr-20 bg-muted"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-1 top-1 h-8 w-8"
+                onClick={() => setAdvancedSearchOpen(true)}
+              >
+                <Filter className="h-4 w-4" />
+                <span className="sr-only">Advanced Search</span>
+              </Button>
+            </div>
+            <Button type="submit" variant="default" className="ml-2">
+              Search
+            </Button>
+          </form>
         </div>
         <div className="flex items-center gap-2">
           <ThemeToggle />
@@ -167,6 +223,11 @@ export default function Home() {
                 <TabsTrigger value="assistant" className="data-[state=active]:bg-background">
                   Assistant
                 </TabsTrigger>
+                {isSearching && (
+                  <TabsTrigger value="search" className="data-[state=active]:bg-background">
+                    Search Results
+                  </TabsTrigger>
+                )}
               </TabsList>
             </div>
 
@@ -185,6 +246,10 @@ export default function Home() {
             <TabsContent value="assistant" className="m-0">
               <AssistantFeatures />
             </TabsContent>
+
+            <TabsContent value="search" className="m-0">
+              <SearchResults filters={searchFilters} onClearSearch={clearSearch} />
+            </TabsContent>
           </Tabs>
         </main>
       </div>
@@ -192,6 +257,11 @@ export default function Home() {
       {/* Modals */}
       <ComposeEmailModal isOpen={composeModalOpen} onClose={() => setComposeModalOpen(false)} />
       <CategorySettings isOpen={categorySettingsOpen} onClose={() => setCategorySettingsOpen(false)} />
+      <AdvancedSearch
+        isOpen={advancedSearchOpen}
+        onClose={() => setAdvancedSearchOpen(false)}
+        onSearch={handleAdvancedSearch}
+      />
     </div>
   )
 }

@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Archive,
@@ -25,14 +26,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import EmailList from "@/components/email-list"
 import AssistantFeatures from "@/components/assistant-features"
 import { ThemeToggle } from "@/components/theme-toggle"
-
-// Import the ComposeEmailModal component at the top of the file
-import { useState } from "react"
 import ComposeEmailModal from "@/components/compose-email-modal"
+import EmailCategories from "@/components/email-categories"
+import CategorySettings from "@/components/category-settings"
+import CategoryAnalytics from "@/components/category-analytics"
 
-// Update the Home component to include state for the compose modal
 export default function Home() {
   const [composeModalOpen, setComposeModalOpen] = useState(false)
+  const [categorySettingsOpen, setCategorySettingsOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState("inbox")
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -56,7 +58,7 @@ export default function Home() {
         </div>
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" onClick={() => setCategorySettingsOpen(true)}>
             <Settings className="w-5 h-5" />
             <span className="sr-only">Settings</span>
           </Button>
@@ -70,8 +72,6 @@ export default function Home() {
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
         <aside className="hidden md:flex flex-col w-64 p-4 border-r shrink-0">
-          {/* Update the Compose button in the sidebar to open the modal */}
-          {/* Find the Button with "Compose" text and replace it with: */}
           <Button className="flex items-center justify-start gap-2 mb-6" onClick={() => setComposeModalOpen(true)}>
             <Plus className="w-4 h-4" />
             <span>Compose</span>
@@ -152,11 +152,17 @@ export default function Home() {
             </div>
           </div>
 
-          <Tabs defaultValue="inbox" className="w-full">
+          <Tabs defaultValue="inbox" value={activeTab} onValueChange={setActiveTab} className="w-full">
             <div className="px-4 border-b">
               <TabsList className="h-12">
                 <TabsTrigger value="inbox" className="data-[state=active]:bg-background">
                   Inbox
+                </TabsTrigger>
+                <TabsTrigger value="categories" className="data-[state=active]:bg-background">
+                  Categories
+                </TabsTrigger>
+                <TabsTrigger value="analytics" className="data-[state=active]:bg-background">
+                  Analytics
                 </TabsTrigger>
                 <TabsTrigger value="assistant" className="data-[state=active]:bg-background">
                   Assistant
@@ -168,15 +174,24 @@ export default function Home() {
               <EmailList />
             </TabsContent>
 
+            <TabsContent value="categories" className="m-0">
+              <EmailCategories />
+            </TabsContent>
+
+            <TabsContent value="analytics" className="m-0">
+              <CategoryAnalytics />
+            </TabsContent>
+
             <TabsContent value="assistant" className="m-0">
               <AssistantFeatures />
             </TabsContent>
           </Tabs>
         </main>
       </div>
-      {/* Add the ComposeEmailModal component at the end of the component, just before the closing </div> */}
-      {/* Add this right before the final closing </div> tag: */}
+
+      {/* Modals */}
       <ComposeEmailModal isOpen={composeModalOpen} onClose={() => setComposeModalOpen(false)} />
+      <CategorySettings isOpen={categorySettingsOpen} onClose={() => setCategorySettingsOpen(false)} />
     </div>
   )
 }
